@@ -1,0 +1,297 @@
+{
+  "realm": "meal-planner",
+  "enabled": true,
+  "displayName": "Meal Planner",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Meal Planner</span></div>",
+
+  "loginWithEmailAllowed": true,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginTheme": "keycloak",
+
+  "sslRequired": "external",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Standard user role - basic access to meal planning features"
+      },
+      {
+        "name": "premium",
+        "description": "Premium subscription user - access to advanced features and nutrition analysis"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator role - full system access including user management"
+      }
+    ]
+  },
+
+  "groups": [
+    {
+      "name": "family-plan",
+      "path": "/family-plan",
+      "attributes": {
+        "plan_type": ["family"],
+        "max_family_members": ["6"]
+      }
+    },
+    {
+      "name": "individual",
+      "path": "/individual",
+      "attributes": {
+        "plan_type": ["individual"],
+        "max_family_members": ["1"]
+      }
+    }
+  ],
+
+  "clientScopes": [
+    {
+      "name": "meal-planner:recipes:read",
+      "description": "Read access to recipes",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "View recipes and your recipe library"
+      }
+    },
+    {
+      "name": "meal-planner:recipes:write",
+      "description": "Write access to recipes",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Create, edit, and delete your recipes"
+      }
+    },
+    {
+      "name": "meal-planner:plans:read",
+      "description": "Read access to meal plans",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "View your meal plans and schedule"
+      }
+    },
+    {
+      "name": "meal-planner:plans:write",
+      "description": "Write access to meal plans",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Create and modify your meal plans"
+      }
+    },
+    {
+      "name": "meal-planner:shopping:read",
+      "description": "Read access to shopping lists",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "View your shopping lists"
+      }
+    },
+    {
+      "name": "meal-planner:shopping:write",
+      "description": "Write access to shopping lists",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Manage and modify your shopping lists"
+      }
+    },
+    {
+      "name": "meal-planner:nutrition:read",
+      "description": "Read access to nutrition analysis",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "View nutrition information and meal analysis"
+      }
+    },
+    {
+      "name": "meal-planner:premium:access",
+      "description": "Access to premium features",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Access premium meal planning features"
+      }
+    },
+    {
+      "name": "meal-planner:admin:manage",
+      "description": "Administrative operations",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true",
+        "consent.screen.text": "Perform administrative operations (admin only)"
+      }
+    }
+  ],
+
+  "clients": [
+    {
+      "clientId": "meal-planner-mcp",
+      "name": "Meal Planner MCP",
+      "description": "Conversational meal planning MCP server - authenticates via OIDC Proxy",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${MEAL_PLANNER_CLIENT_SECRET}",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": [
+        "http://localhost:8000/auth/callback",
+        "https://meal-planner.cumulus-creations.com/auth/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8000",
+        "https://meal-planner.cumulus-creations.com"
+      ],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "meal-planner:recipes:read",
+        "meal-planner:plans:read"
+      ],
+      "optionalClientScopes": [
+        "meal-planner:recipes:write",
+        "meal-planner:plans:write",
+        "meal-planner:shopping:read",
+        "meal-planner:shopping:write",
+        "meal-planner:nutrition:read",
+        "meal-planner:premium:access",
+        "meal-planner:admin:manage",
+        "offline_access"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8000/*##https://meal-planner.cumulus-creations.com/*",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "https://meal-planner.cumulus-creations.com",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "groups-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups"
+          }
+        },
+        {
+          "name": "subscription-tier-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "subscription_tier",
+            "claim.name": "subscription_tier",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "dietary-preferences-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "dietary_preferences",
+            "claim.name": "dietary_preferences",
+            "jsonType.label": "JSON",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "multivalued": "true"
+          }
+        },
+        {
+          "name": "max-family-members-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "max_family_members",
+            "claim.name": "max_family_members",
+            "jsonType.label": "int",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}

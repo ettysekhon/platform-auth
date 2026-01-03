@@ -1,0 +1,39 @@
+# Helm
+.helm/
+charts/
+*.tgz
+
+# Secrets (never commit these)
+*secret*.yaml
+!*secret*.yaml.example
+helm/values-local.yaml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+*.tmp
+*.bak
+
+# Misc
+NOTES.md

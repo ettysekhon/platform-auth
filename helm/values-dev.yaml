@@ -1,0 +1,33 @@
+keycloak:
+  replicas: 1
+
+  hostname: auth-dev.cumulus-creations.com
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  extraEnv:
+    - name: KC_LOG_LEVEL
+      value: INFO
+
+postgres:
+  storage:
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+ingress:
+  hostname: auth-dev.cumulus-creations.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging

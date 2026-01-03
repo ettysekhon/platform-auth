@@ -1,0 +1,217 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  HELM_VERSION: "4.0.4"
+  GKE_CLUSTER: dev
+  GKE_ZONE: europe-west2-a
+  NAMESPACE: auth-platform
+  HELM_RELEASE: platform-auth
+
+jobs:
+  secrets:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: secrets
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Helm Lint
+        run: helm lint ./helm
+
+      - name: Helm Template Validation
+        run: |
+          helm template ${{ env.HELM_RELEASE }} ./helm \
+            -f helm/values.yaml \
+            --debug > /dev/null
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: helm/
+          config_file: .yamllint.yaml
+
+      - name: Markdown Lint
+        uses: DavidAnson/markdownlint-cli2-action@v22
+        with:
+          globs: "**/*.md"
+          config: .markdownlint.json
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: secrets
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Generate manifests
+        run: |
+          mkdir -p /tmp/manifests
+          helm template ${{ env.HELM_RELEASE }} ./helm \
+            -f helm/values.yaml \
+            --output-dir /tmp/manifests
+
+      - name: Trivy Config Scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: "config"
+          scan-ref: "./helm"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+
+      - name: Trivy SARIF Scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: "config"
+          scan-ref: "./helm"
+          format: "sarif"
+          output: "trivy-results.sarif"
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Pluto - Deprecated API Check
+        uses: FairwindsOps/pluto/github-action@master
+
+      - name: Run Pluto
+        run: pluto detect-files -d ./helm
+
+  chart-test:
+    name: Chart Testing
+    runs-on: ubuntu-latest
+    needs: [lint, security]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Setup chart-testing
+        uses: helm/chart-testing-action@v2.8.0
+
+      - name: List changed charts
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --config .github/ct.yaml 2>/dev/null || echo "helm")
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Kind cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1
+
+      - name: Create test namespace
+        if: steps.list-changed.outputs.changed == 'true'
+        run: kubectl create namespace ${{ env.NAMESPACE }}
+
+      - name: Create test secrets
+        if: steps.list-changed.outputs.changed == 'true'
+        run: |
+          kubectl create secret generic ${{ env.HELM_RELEASE }}-postgres \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=username=test \
+            --from-literal=password=test
+          kubectl create secret generic ${{ env.HELM_RELEASE }}-keycloak-admin \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=password=test
+
+      - name: Helm install (dry-run)
+        if: steps.list-changed.outputs.changed == 'true'
+        run: |
+          helm install ${{ env.HELM_RELEASE }} ./helm \
+            --namespace ${{ env.NAMESPACE }} \
+            --dry-run \
+            --debug
+
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: chart-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      id-token: write
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SA }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Deploy to GKE
+        run: |
+          helm upgrade --install ${{ env.HELM_RELEASE }} ./helm \
+            --namespace ${{ env.NAMESPACE }} \
+            --values helm/values.yaml \
+            --wait \
+            --atomic \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-keycloak \
+            --namespace ${{ env.NAMESPACE }} \
+            --timeout=5m
