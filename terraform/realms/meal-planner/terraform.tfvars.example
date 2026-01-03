@@ -1,0 +1,20 @@
+keycloak_url            = "https://auth.cumulus-creations.com"
+keycloak_admin_username = "etty"
+
+realm_name         = "meal-planner"
+realm_display_name = "Meal Planner"
+
+mcp_client_id = "meal-planner-mcp"
+
+mcp_server_urls = {
+  local      = "http://localhost:8000"
+  production = "https://meal-planner.cumulus-creations.com"
+  ngrok      = ""
+}
+
+additional_redirect_uris = [
+  "http://localhost:6274/oauth/callback",
+  "https://claude.ai/*",
+]
+
+create_test_user = true

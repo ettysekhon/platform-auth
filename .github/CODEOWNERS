@@ -1,0 +1,4 @@
+* @ettysekhon
+/helm/ @ettysekhon
+/.github/ @ettysekhon
+/helm/templates/*/secret.yaml @ettysekhon

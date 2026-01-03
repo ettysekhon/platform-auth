@@ -1,0 +1,26 @@
+🔐 Platform Auth (Keycloak) has been deployed!
+
+{{- if .Values.ingress.enabled }}
+
+1. Access Keycloak at:
+   https://{{ .Values.ingress.hostname }}
+
+{{- else }}
+
+1. Get the application URL by running:
+   kubectl port-forward svc/{{ include "platform-auth.fullname" . }}-keycloak 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+   Then open: http://localhost:8080
+
+{{- end }}
+
+2. Login with admin credentials:
+   Username: {{ .Values.keycloak.admin.username }}
+   Password: kubectl get secret {{ .Values.keycloak.admin.existingSecret }} -n {{ .Release.Namespace }} -o jsonpath='{.data.{{ .Values.keycloak.admin.secretKey }}}' | base64 -d
+
+3. Import realms:
+   ./scripts/import-realms.sh
+
+4. OIDC Discovery endpoints:
+   https://{{ .Values.ingress.hostname }}/realms/{realm}/.well-known/openid-configuration
+
+📚 Documentation: docs/DEPLOYMENT.md

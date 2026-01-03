@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: dev
+        type: choice
+        options: [dev]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  HELM_VERSION: "4.0.4"
+  GKE_CLUSTER: dev
+  GKE_ZONE: europe-west2-a
+  NAMESPACE: auth-platform
+  HELM_RELEASE: platform-auth
+
+jobs:
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Deploy
+        run: |
+          helm upgrade --install ${{ env.HELM_RELEASE }} ./helm \
+            --namespace ${{ env.NAMESPACE }} \
+            --values helm/values.yaml \
+            --values helm/values-dev.yaml \
+            --wait --atomic --timeout 10m
+
+      - name: Verify
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-keycloak \
+            --namespace ${{ env.NAMESPACE }} --timeout=5m
+          kubectl get pods,svc,ingress -n ${{ env.NAMESPACE }}

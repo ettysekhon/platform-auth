@@ -1,0 +1,80 @@
+global:
+  namespace: auth-platform
+
+keycloak:
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "26.4.7"
+    pullPolicy: IfNotPresent
+
+  replicas: 1
+
+  hostname: auth.cumulus-creations.com
+
+  admin:
+    username: admin
+    existingSecret: platform-auth-platform-auth-keycloak-admin
+    secretKey: password
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  health:
+    startupProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      failureThreshold: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+
+  extraEnv: []
+
+postgres:
+  image:
+    repository: postgres
+    tag: "15"
+    pullPolicy: IfNotPresent
+
+  database: keycloak
+  username: keycloak
+  existingSecret: platform-auth-platform-auth-postgres
+  secretKeys:
+    username: username
+    password: password
+
+  storage:
+    size: 10Gi
+    storageClass: standard-rwo
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  hostname: auth.cumulus-creations.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+  tls:
+    enabled: true
+    secretName: auth-tls
+
+service:
+  type: ClusterIP
+  port: 8080

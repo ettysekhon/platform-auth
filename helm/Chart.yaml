@@ -1,0 +1,23 @@
+apiVersion: v2
+name: platform-auth
+description: Keycloak OAuth 2.1/OIDC authentication platform for cumulus-creations.com
+type: application
+version: 0.1.0
+appVersion: "26.4.7"
+
+keywords:
+  - keycloak
+  - authentication
+  - oauth
+  - oidc
+  - oauth2.1
+
+maintainers:
+  - name: Etty Sekhon
+    email: etty.sekhon@gmail.com
+
+home: https://github.com/ettysekhon/platform-auth
+sources:
+  - https://github.com/keycloak/keycloak
+
+icon: https://www.keycloak.org/resources/images/keycloak_icon_512px.svg
