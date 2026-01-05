@@ -55,7 +55,7 @@ jobs:
           config_file: .yamllint.yaml
 
       - name: Markdown Lint
-        uses: DavidAnson/markdownlint-cli2-action@v19
+        uses: DavidAnson/markdownlint-cli2-action@v22
         with:
           globs: "**/*.md"
           config: .markdownlint.json
