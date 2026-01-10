@@ -28,35 +28,34 @@ variable "mcp_client_id" {
   default = "meal-planner-mcp"
 }
 
-variable "mcp_server_urls" {
-  type = object({
-    local      = string
-    production = string
-    ngrok      = string
-  })
-  default = {
-    local      = "http://localhost:8000"
-    production = "https://meal-planner.cumulus-creations.com"
-    ngrok      = "https://75b49b5e66cd.ngrok-free.app"
-  }
+variable "mcp_local_url" {
+  type    = string
+  default = "http://localhost:8000"
+}
+
+variable "mcp_production_url" {
+  type    = string
+  default = "https://meal-planner.cumulus-creations.com"
 }
 
 variable "additional_redirect_uris" {
-  type = list(string)
-  default = [
-    "http://localhost:6274/oauth/callback",
-    "https://claude.ai/*",
-    "https://75b49b5e66cd.ngrok-free.app/*",
-  ]
+  type    = list(string)
+  default = []
+}
+
+variable "additional_audience_urls" {
+  type        = list(string)
+  default     = []
+  description = "Additional audience URLs for JWT aud claim (e.g., ngrok URLs)"
 }
 
 variable "create_test_user" {
   type    = bool
-  default = true
+  default = false
 }
 
 variable "test_user_password" {
   type      = string
   sensitive = true
-  default   = "testpass123"
+  default   = ""
 }

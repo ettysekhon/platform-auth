@@ -20,7 +20,6 @@ resource "keycloak_realm" "meal_planner" {
   access_code_lifespan_login              = "30m"
 
   ssl_required = "external"
-  # Brute force: configure via UI (provider limitation)
 }
 
 resource "keycloak_role" "user" {
@@ -216,23 +215,23 @@ resource "keycloak_openid_client" "mcp_server" {
 
   valid_redirect_uris = concat(
     [
-      "${var.mcp_server_urls.local}/auth/callback",
-      "${var.mcp_server_urls.production}/auth/callback",
-      "${var.mcp_server_urls.ngrok}/auth/callback",
+      "${var.mcp_local_url}/auth/callback",
+      "${var.mcp_production_url}/auth/callback",
+      "http://localhost:6274/oauth/callback",
+      "https://claude.ai/*",
     ],
     var.additional_redirect_uris
   )
 
   valid_post_logout_redirect_uris = [
-    "${var.mcp_server_urls.local}/*",
-    "${var.mcp_server_urls.production}/*",
-    "${var.mcp_server_urls.ngrok}/*",
+    "${var.mcp_local_url}/*",
+    "${var.mcp_production_url}/*",
   ]
 
   web_origins = [
-    var.mcp_server_urls.local,
-    var.mcp_server_urls.production,
-    var.mcp_server_urls.ngrok,
+    var.mcp_local_url,
+    var.mcp_production_url,
+    "https://claude.ai",
   ]
 
   backchannel_logout_session_required        = true
@@ -281,7 +280,7 @@ resource "keycloak_openid_audience_protocol_mapper" "localhost_audience" {
   realm_id                 = keycloak_realm.meal_planner.id
   client_id                = keycloak_openid_client.mcp_server.id
   name                     = "localhost-audience"
-  included_custom_audience = var.mcp_server_urls.local
+  included_custom_audience = var.mcp_local_url
   add_to_id_token          = false
   add_to_access_token      = true
 }
@@ -290,16 +289,17 @@ resource "keycloak_openid_audience_protocol_mapper" "production_audience" {
   realm_id                 = keycloak_realm.meal_planner.id
   client_id                = keycloak_openid_client.mcp_server.id
   name                     = "production-audience"
-  included_custom_audience = var.mcp_server_urls.production
+  included_custom_audience = var.mcp_production_url
   add_to_id_token          = false
   add_to_access_token      = true
 }
 
-resource "keycloak_openid_audience_protocol_mapper" "ngrok_audience" {
+resource "keycloak_openid_audience_protocol_mapper" "additional_audiences" {
+  for_each                 = toset(var.additional_audience_urls)
   realm_id                 = keycloak_realm.meal_planner.id
   client_id                = keycloak_openid_client.mcp_server.id
-  name                     = "ngrok-audience"
-  included_custom_audience = var.mcp_server_urls.ngrok
+  name                     = "audience-${md5(each.value)}"
+  included_custom_audience = each.value
   add_to_id_token          = false
   add_to_access_token      = true
 }
